@@ -52,6 +52,11 @@ RUN export GOBIN="/home/vscode/go/bin" \
     && go install github.com/cloudflare/cfssl/cmd/cfssl@latest \
     && go install github.com/cloudflare/cfssl/cmd/cfssljson@latest
 
+# Install kubectl
+RUN sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+RUN echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && apt-get install -y kubectl
+
 ENTRYPOINT [ "/usr/local/share/docker-init.sh" ]
 CMD [ "sleep", "infinity" ]
 
