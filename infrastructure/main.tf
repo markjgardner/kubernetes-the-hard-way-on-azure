@@ -21,7 +21,7 @@ resource "azurerm_resource_group" "rg" {
 }
 
 resource "azurerm_virtual_network" "vnet" {
-  name                = "kubernetes-the-hard-way"
+  name                = "kubernetesTHW-vn"
   resource_group_name = azurerm_resource_group.rg.name
   location            = var.location
   address_space       = ["10.0.0.0/16"]
@@ -35,10 +35,24 @@ resource "azurerm_subnet" "subnet" {
 }
 
 resource "azurerm_public_ip" "publicIp" {
-  name                = "kubernetes-the-hard-way"
+  name                = "kubernetesTHW-ip"
   resource_group_name = azurerm_resource_group.rg.name
   location            = var.location
   allocation_method   = "Static"
+}
+
+resource "azurerm_public_ip" "vmIps" {
+  count               = 6
+  name                = "kubernetesTHW${count.index}-ip"
+  resource_group_name = azurerm_resource_group.rg.name
+  location            = var.location
+  allocation_method   = "Dynamic"
+}
+
+resource "azurerm_network_security_group" "nsg" {
+  name = "kuberneteTHW-nsg"
+  resource_group_name = azurerm_resource_group.rg.name
+  location = var.location 
 }
 
 resource "azurerm_network_interface" "nics" {
@@ -51,8 +65,16 @@ resource "azurerm_network_interface" "nics" {
     name      = "internal"
     primary   = true
     subnet_id = azurerm_subnet.subnet.id
-    private_ip_address_allocation = "Dynamic"
+    private_ip_address_allocation = "Static"
+    private_ip_address = "10.0.1.${count.index+16}"
+    public_ip_address_id = azurerm_public_ip.vmIps[count.index].id
   }
+}
+
+resource "azurerm_network_interface_security_group_association" "nsgApplied" {
+  count = 6
+  network_security_group_id = azurerm_network_security_group.nsg.id
+  network_interface_id = azurerm_network_interface.nics[count.index].id
 }
 
 resource "azurerm_linux_virtual_machine" "controllers" {
@@ -60,7 +82,7 @@ resource "azurerm_linux_virtual_machine" "controllers" {
   name                = "controller-${count.index}"
   resource_group_name = azurerm_resource_group.rg.name
   location            = var.location
-  size                = "Standard_D2s_V3"
+  size                = "Standard_D2s_v3"
   admin_username      = "adminuser"
 
   network_interface_ids = [
@@ -90,7 +112,7 @@ resource "azurerm_linux_virtual_machine" "workers" {
   name                = "worker-${count.index}"
   resource_group_name = azurerm_resource_group.rg.name
   location            = var.location
-  size                = "Standard_D2s_V3"
+  size                = "Standard_D2s_v3"
   admin_username      = "adminuser"
 
   network_interface_ids = [
